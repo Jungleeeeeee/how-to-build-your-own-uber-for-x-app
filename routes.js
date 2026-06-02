@@ -35,8 +35,15 @@ router.get('/cops', async (req, res) => {
 });
 
 router.get('/cops/info', async (req, res) => {
-    const userId = req.query.userId // xtract userId from query params
-    const copDetails = await dbOperations.fetchCopDetails(userId);
+    let userId = req.query.userId; // извлекаем userId из параметров ("01")
+    
+    // Пытаемся найти копа сначала по строке, а если вернет null — по числу
+    let copDetails = await dbOperations.fetchCopDetails(userId);
+    
+    if (!copDetails && !isNaN(userId)) {
+        // Если ничего не нашли, превращаем "01" в число 1 и ищем снова
+        copDetails = await dbOperations.fetchCopDetails(Number(userId));
+    }
 
     res.json({
         copDetails: copDetails
