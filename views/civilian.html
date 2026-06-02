@@ -24,10 +24,13 @@
     <button onclick="requestForHelp()">🚨 Вызвать экстренную помощь</button>
     <div id="map"></div>
 
-    <script type="text/javascript">
+     <script type="text/javascript">
         const socket = io();
-        const userId = document.body.getAttribute("data-userId");
+        
+        // 1. СНАЧАЛА извлекаем реальный userId из атрибута body, который заполнил Express
+        const userId = document.body.getAttribute("data-userId") || 'Гражданин';
 
+        // 2. ТОЛЬКО ПОСЛЕ ЭТОГО подключаемся к комнате под реальным именем
         socket.emit("join", { userId: userId });
 
         let requestDetails = {
@@ -50,18 +53,19 @@
         });
 
         function requestForHelp() {
-    document.getElementById("notification").innerHTML = "<b>Сигнал отправлен! Поиск ближайших экипажей полиции...</b>";
+            document.getElementById("notification").innerHTML = "<b>Сигнал отправлен! Поиск ближайших экипажей полиции...</b>";
 
-    // Отправляем сигнал бедствия напрямую через WebSocket, минуя HTTP POST
-    socket.emit("request-for-help", {
-        civilianId: userId,
-        location: {
-            latitude: requestDetails.latitude,
-            longitude: requestDetails.longitude,
-            address: requestDetails.address
+            socket.emit("request-for-help", {
+                civilianId: userId,
+                location: {
+                    latitude: requestDetails.latitude,
+                    longitude: requestDetails.longitude,
+                    address: requestDetails.address
+                }
+            });
         }
-    });
-}
+
+        // Ловим ответ от копа (теперь комната совпадет на 100%)
         socket.on("accepted", (copDetails) => {
             document.getElementById("notification").innerHTML = `
                 <span style="color: green; font-weight: bold;">✅ Помощь уже в пути!</span><br>
