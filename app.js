@@ -48,15 +48,14 @@ async function startApp() {
     // Автоматический импорт тестовых данных из папки db
     const nativeDb = mongoose.connection.db;
 
-      try {
-        // Стандартное чтение правильного JSON массива для копов
+     try {
+        // Стандартное чтение чистого JSON для копов
         const copsData = JSON.parse(fs.readFileSync('./db/cops.json', 'utf8'));
         await nativeDb.collection('cops').insertMany(copsData);
         console.log('🔹 Данные полицейских успешно импортированы.');
 
-        // Чтение данных запросов (если там тоже обычный текст)
-        const requestsRaw = fs.readFileSync('./db/crime-data.json', 'utf8');
-        const requestsData = requestsRaw.trim().split('\n').map(line => JSON.parse(line));
+        // Стандартное чтение чистого JSON для преступлений
+        const requestsData = JSON.parse(fs.readFileSync('./db/crime-data.json', 'utf8'));
         await nativeDb.collection('requests').insertMany(requestsData);
         console.log('🔹 Данные преступлений успешно импортированы.');
     } catch (importError) {
