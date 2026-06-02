@@ -3,8 +3,10 @@ const express = require('express');
 const consolidate = require('consolidate');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const fs = require('fs'); // Модуль для чтения файлов данных
+const { MongoMemoryServer } = require('mongodb-memory-server'); // Виртуальная БД
 
-const routes = require('./routes'); //File that contains our endpoints
+const routes = require('./routes'); 
 const socketEvents = require('./socket-events');
 
 const app = express();
@@ -17,28 +19,59 @@ app.use(bodyParser.json({
     limit: '5mb'
 }));
 
-app.set('views', 'views'); // Set the folder-name from where you serve the html page.
-app.use(express.static('./public')); // setting the folder name (public) where all the static files like css, js, images etc are made available
+app.set('views', 'views'); 
+app.use(express.static('./public')); 
 
 app.set('view engine', 'html');
-app.engine('html', consolidate.handlebars); // Use handlebars to parse templates when we do res.render
-
-// connect to Database
-const db = 'mongodb://localhost:27017/uberForX';
-mongoose.connect(db).then(value => {
-    // Successful connection
-    console.log(value.models);
-}).catch(error => {
-    // Error in connection
-    console.log(error);
-});
+app.engine('html', consolidate.handlebars); 
 
 app.use('/', routes);
 
 const server = http.Server(app);
-const portNumber = 8000; // for locahost:8000
+const portNumber = 8000; 
 
-server.listen(portNumber, () => { // Runs the server on port 8000
-    console.log(`Server listening at port ${portNumber}`);
-    socketEvents.initialize(server);
+// Функция автоматического старта встроенной БД и импорта данных
+async function startApp() {
+    console.log('Запуск встроенного сервера MongoDB...');
+    
+    // Создаем виртуальную базу данных на порту 27017
+    const mongoServer = await MongoMemoryServer.create({
+        instance: { port: 27017, dbName: 'uberForX' }
+    });
+    
+    const dbUri = mongoServer.getUri();
+    
+    // Подключаем mongoose к созданной виртуальной базе
+    await mongoose.connect(dbUri);
+    console.log('✅ Встроенная база данных успешно подключена!');
+
+    // Автоматический импорт тестовых данных из папки db
+    const nativeDb = mongoose.connection.db;
+
+      try {
+        // Правильное чтение формата JSON Lines для копов
+        const copsRaw = fs.readFileSync('./db/cops.json', 'utf8');
+        const copsData = copsRaw.trim().split('\n').map(line => JSON.parse(line));
+        await nativeDb.collection('cops').insertMany(copsData);
+        console.log('🔹 Данные полицейских успешно импортированы.');
+
+        // Правильное чтение формата JSON Lines для запросов
+        const requestsRaw = fs.readFileSync('./db/crime-data.json', 'utf8');
+        const requestsData = requestsRaw.trim().split('\n').map(line => JSON.parse(line));
+        await nativeDb.collection('requests').insertMany(requestsData);
+        console.log('🔹 Данные преступлений успешно импортированы.');
+    } catch (importError) {
+        console.log('Предупреждение при импорте (возможно данные уже есть):', importError.message);
+    }
+
+    // Запускаем веб-сервер и сокеты только ПОСЛЕ старта базы данных
+    server.listen(portNumber, () => { 
+        console.log(`🚀 Сервер запущен! Открой в браузере: http://localhost:${portNumber}`);
+        socketEvents.initialize(server);
+    });
+}
+
+// Запускаем наше приложение
+startApp().catch(error => {
+    console.error('Ошибка критического запуска приложения:', error);
 });
