@@ -49,13 +49,12 @@ async function startApp() {
     const nativeDb = mongoose.connection.db;
 
       try {
-        // Правильное чтение формата JSON Lines для копов
-        const copsRaw = fs.readFileSync('./db/cops.json', 'utf8');
-        const copsData = copsRaw.trim().split('\n').map(line => JSON.parse(line));
+        // Стандартное чтение правильного JSON массива для копов
+        const copsData = JSON.parse(fs.readFileSync('./db/cops.json', 'utf8'));
         await nativeDb.collection('cops').insertMany(copsData);
         console.log('🔹 Данные полицейских успешно импортированы.');
 
-        // Правильное чтение формата JSON Lines для запросов
+        // Чтение данных запросов (если там тоже обычный текст)
         const requestsRaw = fs.readFileSync('./db/crime-data.json', 'utf8');
         const requestsData = requestsRaw.trim().split('\n').map(line => JSON.parse(line));
         await nativeDb.collection('requests').insertMany(requestsData);
