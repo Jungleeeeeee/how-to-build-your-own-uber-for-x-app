@@ -66,11 +66,15 @@
         }
 
         // Ловим ответ от копа (теперь комната совпадет на 100%)
-        socket.on("accepted", (copDetails) => {
-            document.getElementById("notification").innerHTML = `
-                <span style="color: green; font-weight: bold;">✅ Помощь уже в пути!</span><br>
-                К вам направляется: <b>${copDetails.displayName}</b>. Телефон: ${copDetails.phone}
-            `;
+         // Ловим ответ от копа через глобальное событие
+        socket.on("accepted", (data) => {
+            // Проверяем, совпадает ли ID пострадавшего с текущим пользователем
+            if (data.targetCivilianId === userId) {
+                document.getElementById("notification").innerHTML = `
+                    <span style="color: green; font-weight: bold;">✅ Помощь уже в пути!</span><br>
+                    К вам направляется: <b>${data.copDetails.displayName}</b>. Телефон: ${data.copDetails.phone}
+                `;
+            }
         });
     </script>
 </body>
