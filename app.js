@@ -21,6 +21,8 @@ app.use(bodyParser.json({
 
 app.set('views', 'views'); 
 app.use(express.static('./public')); 
+app.use('/libs/leaflet', express.static('./node_modules/leaflet/dist'));
+app.use('/libs/axios', express.static('./node_modules/axios/dist'));
 
 app.set('view engine', 'html');
 app.engine('html', consolidate.handlebars); 
