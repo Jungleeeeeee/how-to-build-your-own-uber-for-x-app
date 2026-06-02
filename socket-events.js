@@ -14,38 +14,30 @@ function initialize(server) {
 		});
 
 		// Listen to a 'request-for-help' event from connected civilians
-		socket.on('request-for-help', async (eventData) => {
-            /*
-            	eventData contains userId and location
-            	1. First save the request details in the collection requestsData
-            	2. AFTER saving, fetch nearby cops from civilian’s location
-            	3. Fire a request-for-help event to each of the cop’s room
-            */
+		// Внутри функции initialize(server) найди или добавь этот обработчик:
+socket.on("request-for-help", async (eventData) => {
+    const requestId = 'req_' + Math.random().toString(36).substr(2, 9);
+    const requestTime = new Date();
+    const status = "waiting";
 
-			// 1. First save the request details in the collection requestsData.
-			const requestTime = new Date(); // Time of the request
-			const requestId = mongoose.Types.ObjectId(); // Generate unique ID for the request
+    // Сохраняем заявку в виртуальную базу данных
+    await dbOperations.saveRequest(
+        requestId, 
+        requestTime, 
+        {
+            address: eventData.location.address,
+            coordinates: [eventData.location.longitude, eventData.location.latitude]
+        }, 
+        eventData.civilianId, 
+        status
+    ).catch(err => console.error("Ошибка сохранения сокет-заявки:", err));
 
-			const location = { // Convert latitude and longitude to [longitude, latitude]
-				coordinates: [
-					eventData.location.longitude,
-					eventData.location.latitude
-				],
-				address: eventData.location.address
-			};
-
-			await dbOperations.saveRequest(requestId, requestTime, location, eventData.civilianId, 'waiting');
-
-			// 2. AFTER saving, fetch nearby cops from civilian’s location
-			const nearestCops = await dbOperations.fetchNearestCops(location.coordinates, 2000);
-			eventData.requestId = requestId;
-
-			// 3. After fetching nearest cops, fire a 'request-for-help' event to each of them
-			for (let i = 0; i < nearestCops.length; i++) {
-				io.sockets.in(nearestCops[i].userId).emit('request-for-help', eventData);
-			}
-
-		});
+    // Рассылаем событие всем подключенным копам в реальном времени
+    socket.broadcast.emit("request-for-help", {
+        civilianId: eventData.civilianId,
+        location: eventData.location
+    });
+});
 
 		socket.on('request-accepted', async (eventData) => { // Listen to a 'request-accepted' event from connected cops
 			console.log('eventData contains: ', eventData);
