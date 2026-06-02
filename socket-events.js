@@ -39,18 +39,23 @@ socket.on("request-for-help", async (eventData) => {
     });
 });
 
-		socket.on('request-accepted', async (eventData) => { // Listen to a 'request-accepted' event from connected cops
-			console.log('eventData contains: ', eventData);
+		// Обработка принятия вызова сотрудником полиции
+        socket.on('request-accepted', async (eventData) => {
+            console.log('Вызов принят, данные события:', eventData);
 
-			// Convert string to MongoDb's ObjectId data-type
-			const requestId = mongoose.Types.ObjectId(eventData.requestDetails.requestId);
+            const requestId = eventData.requestDetails.requestId;
+            const copId = eventData.copDetails.userId || eventData.copDetails.copId;
 
-			// Then update the request in the database with the cop details for given requestId
-			await dbOperations.updateRequest(requestId, eventData.copDetails.copId, 'engaged');
+            // Обновляем статус заявки в БД
+            await dbOperations.updateRequest(requestId, copId, 'engaged')
+                .catch(err => console.error("Ошибка обновления статуса заявки:", err));
 
-			// After updating the request, emit a 'request-accepted' event to the civilian and send cop details
-			io.sockets.in(eventData.requestDetails.civilianId).emit('request-accepted', eventData.copDetails);
-		});
+            // Отправляем глобальное событие ВСЕМ, передавая внутри civilianId
+            io.emit('accepted', {
+                targetCivilianId: eventData.requestDetails.civilianId,
+                copDetails: eventData.copDetails
+            });
+        });
 
 	});
 }
