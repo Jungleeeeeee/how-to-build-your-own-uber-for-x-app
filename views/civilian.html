@@ -50,22 +50,18 @@
         });
 
         function requestForHelp() {
-            axios.post('/requests/create', {
-                civilianId: userId,
-                location: {
-                    latitude: requestDetails.latitude,
-                    longitude: requestDetails.longitude,
-                    address: requestDetails.address
-                }
-            })
-            .then((response) => {
-                document.getElementById("notification").innerHTML = "<b>Сигнал отправлен! Поиск ближайших экипажей полиции...</b>";
-            })
-            .catch((error) => {
-                console.error("Ошибка отправки запроса:", error);
-            });
-        }
+    document.getElementById("notification").innerHTML = "<b>Сигнал отправлен! Поиск ближайших экипажей полиции...</b>";
 
+    // Отправляем сигнал бедствия напрямую через WebSocket, минуя HTTP POST
+    socket.emit("request-for-help", {
+        civilianId: userId,
+        location: {
+            latitude: requestDetails.latitude,
+            longitude: requestDetails.longitude,
+            address: requestDetails.address
+        }
+    });
+}
         socket.on("accepted", (copDetails) => {
             document.getElementById("notification").innerHTML = `
                 <span style="color: green; font-weight: bold;">✅ Помощь уже в пути!</span><br>
