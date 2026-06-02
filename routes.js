@@ -78,4 +78,30 @@ router.get('/requests/info', async (req, res) => {
     res.json(geoJsonData);
 });
 
+router.post('/requests/create', async (req, res) => {
+    try {
+        const civilianId = req.body.civilianId;
+        const location = {
+            address: req.body.location.address || "Указанное место на карте",
+            coordinates: [req.body.location.longitude, req.body.location.latitude]
+        };
+        
+        // Генерация случайного ID для новой заявки
+        const requestId = 'req_' + Math.random().toString(36).substr(2, 9);
+        const requestTime = new Date();
+        const status = "waiting";
+
+        // Сохраняем в нашу виртуальную базу данных через db-operations
+        await dbOperations.saveRequest(requestId, requestTime, location, civilianId, status);
+
+        res.status(201).json({
+            message: "Заявка успешно создана",
+            requestId: requestId
+        });
+    } catch (error) {
+        console.error("Ошибка при создании заявки в роуте:", error);
+        res.status(500).json({ error: "Внутренняя ошибка сервера" });
+    }
+});
+
 module.exports = router;
