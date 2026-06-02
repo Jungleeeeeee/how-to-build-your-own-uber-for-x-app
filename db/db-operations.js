@@ -22,9 +22,20 @@ function fetchNearestCops(coordinates, maxDistance) {
 }
 
 function fetchCopDetails(userId) {
+    // Формируем условия поиска для Mongoose
+    const conditions = [
+        { userId: String(userId) }
+    ];
+    
+    // Если userId можно перевести в число, добавляем числовой вариант поиска
+    if (!isNaN(userId)) {
+        conditions.push({ userId: Number(userId) });
+    }
+
     return Cop.findOne({
-        userId: userId
+        $or: conditions
     }, {
+        userId: 1, // Обязательно возвращаем userId для фронтенда
         copId: 1,
         displayName: 1,
         phone: 1,
